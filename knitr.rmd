@@ -1,0 +1,97 @@
+---
+title: "Practical Machine Learning"
+author: "Filip"
+date: "20. 11. 2015"
+output: html_document
+---
+
+Background
+-----------------
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+
+
+Data 
+---------
+
+The training data for this project are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+Code
+----------
+Loading the caret library
+```{r}
+library(caret)
+```
+
+Reading files
+```{r}
+train <- read.csv("pml-training.csv")
+test <- read.csv("pml-testing.csv")
+```
+
+Set seed
+```{r}
+set.seed(333)
+```
+
+Divide the train data to testing and training part
+```{r}
+inTrain <- createDataPartition(y=train$classe, p=0.7, list=F)
+training <- train[inTrain, ]
+testing <- train[-inTrain, ]
+```
+
+Removing near zero values
+```{r}
+nzv <- nearZeroVar(training)
+training <- training[, -nzv]
+testing <- testing[, -nzv]
+```
+
+Remove almost always NA variables
+```{r}
+mostlyNA <- sapply(training, function(x) mean(is.na(x))) > 0.95
+training <- training[, mostlyNA==F]
+testing <- testing[, mostlyNA==F]
+```
+
+Select only variables which contains information valueable for the prediction
+```{r}
+training <- training[, -(1:5)]
+testing <- testing[, -(1:5)]
+```
+
+Train model using three fold CV
+```{r}
+fitControl <- trainControl(method="cv", number=3, verboseIter=F)
+fit <- train(classe ~ ., data=training, method="rf", trControl=fitControl)
+
+```
+
+Final model
+```{r}
+fit$finalModel
+```
+
+Make prediction on the testing data
+```{r}
+preds <- predict(fit, newdata=testing)
+```
+
+
+See how the model works based on the out-of-sample error. I expect the model to behive slightly worst tehn on the training data but sill above 95%.
+```{r}
+confusionMatrix(testing$classe, preds)
+```
+
+The accuracy if above 99% for all metrics which is good. This model can be used for the predictions.
+
+
+
+
